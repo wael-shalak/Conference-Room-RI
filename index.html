@@ -90,7 +90,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Add the Relief International logo -->
         <img src="relief-international-logo.png" alt="Relief International Logo" class="logo">
         
         <h1>Relief International Conference Rooms Booking</h1>
@@ -124,14 +123,16 @@
         <div class="booking-list" id="bookingList"></div>
         <div class="pagination" id="paginationControls"></div>
 
-        <!-- Add credits at the bottom -->
         <div class="credits">
             Created by Wael Shalak
         </div>
     </div>
 
     <script>
-        const scriptUrl = 'https://script.google.com/macros/s/AKfycbzSBLoU7CgOpQ3M4m0PEEoru9frt-g3j5QPxn2nKqpL4vbKjtPxeRzYoYiU1KyO0bOVFQ/exec'; // Your Google Apps Script URL
+        const scriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
+        const bookings = [];
+        const itemsPerPage = 5;
+        let currentPage = 1;
 
         function bookRoom() {
             const bookerName = document.getElementById('bookerName').value;
@@ -145,74 +146,94 @@
                 return;
             }
 
-            fetch(`${scriptUrl}?action=addBooking&bookerName=${encodeURIComponent(bookerName)}&date=${encodeURIComponent(date)}&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}&room=${encodeURIComponent(room)}`, { method: 'GET' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        displayBookings();
-                    } else {
-                        alert(data.message);
-                    }
-                });
+            const conflict = bookings.some(booking =>
+                booking.date === date &&
+                booking.room === room &&
+                ((startTime >= booking.startTime && startTime < booking.endTime) ||
+                (endTime > booking.startTime && endTime <= booking.endTime) ||
+                (startTime <= booking.startTime && endTime >= booking.endTime))
+            );
+
+            if (conflict) {
+                alert('This room is already booked during the selected time. Please choose another time or room.');
+                return;
+            }
+
+            const booking = { bookerName, date, startTime, endTime, room };
+            fetch(scriptUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(booking)
+            }).then(response => response.json())
+              .then(() => {
+                  bookings.push(booking);
+                  bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`));
+                  alert('Room booked successfully!');
+                  displayBookings();
+              })
+              .catch(error => console.error('Error:', error));
         }
 
         function displayBookings() {
-            fetch(`${scriptUrl}?action=getBookings`, { method: 'GET' })
-                .then(response => response.json())
-                .then(data => {
-                    const bookingList = document.getElementById('bookingList');
-                    const paginationControls = document.getElementById('paginationControls');
-                    bookingList.innerHTML = '';
-                    paginationControls.innerHTML = '';
+            const bookingList = document.getElementById('bookingList');
+            const paginationControls = document.getElementById('paginationControls');
+            bookingList.innerHTML = '';
+            paginationControls.innerHTML = '';
 
-                    const itemsPerPage = 5;
-                    const totalPages = Math.ceil(data.length / itemsPerPage);
-                    const currentPage = 1; // You can add logic to handle page navigation if needed
+            const totalPages = Math.ceil(bookings.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, bookings.length);
+            const currentBookings = bookings.slice(startIndex, endIndex);
 
-                    const startIndex = (currentPage - 1) * itemsPerPage;
-                    const endIndex = Math.min(startIndex + itemsPerPage, data.length);
-                    const currentBookings = data.slice(startIndex, endIndex);
+            currentBookings.forEach(booking => {
+                const bookingItem = document.createElement('div');
+                bookingItem.className = 'booking-item';
+                bookingItem.textContent = `Booker: ${booking.bookerName} | Date: ${booking.date} | Time: ${booking.startTime} - ${booking.endTime} | Room: ${booking.room}`;
+                bookingList.appendChild(bookingItem);
+            });
 
-                    currentBookings.forEach(row => {
-                        const bookingItem = document.createElement('div');
-                        bookingItem.className = 'booking-item';
-                        bookingItem.textContent = `Booker: ${row[0]} | Date: ${row[1]} | Time: ${row[2]} - ${row[3]} | Room: ${row[4]}`;
-                        bookingList.appendChild(bookingItem);
-                    });
-
-                    // Pagination controls
-                    if (totalPages > 1) {
-                        const createButton = (text, page, disabled = false) => {
-                            const button = document.createElement('button');
-                            button.textContent = text;
-                            button.disabled = disabled;
-                            button.className = disabled ? 'disabled' : '';
-                            button.onclick = () => {
-                                if (!disabled) {
-                                    currentPage = page;
-                                    displayBookings();
-                                }
-                            };
-                            return button;
-                        };
-
-                        paginationControls.appendChild(createButton('First', 1, currentPage === 1));
-                        paginationControls.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
-
-                        for (let i = 1; i <= totalPages; i++) {
-                            const pageButton = createButton(i, i);
-                            if (i === currentPage) pageButton.style.fontWeight = 'bold';
-                            paginationControls.appendChild(pageButton);
+            if (totalPages > 1) {
+                const createButton = (text, page, disabled = false) => {
+                    const button = document.createElement('button');
+                    button.textContent = text;
+                    button.disabled = disabled;
+                    button.className = disabled ? 'disabled' : '';
+                    button.onclick = () => {
+                        if (!disabled) {
+                            currentPage = page;
+                            displayBookings();
                         }
+                    };
+                    return button;
+                };
 
-                        paginationControls.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
-                        paginationControls.appendChild(createButton('Last', totalPages, currentPage === totalPages));
-                    }
-                });
+                paginationControls.appendChild(createButton('First', 1, currentPage === 1));
+                paginationControls.appendChild(createButton('Prev', currentPage - 1, currentPage === 1));
+
+                for (let i = 1; i <= totalPages; i++) {
+                    const pageButton = createButton(i, i);
+                    if (i === currentPage) pageButton.style.fontWeight = 'bold';
+                    paginationControls.appendChild(pageButton);
+                }
+
+                paginationControls.appendChild(createButton('Next', currentPage + 1, currentPage === totalPages));
+                paginationControls.appendChild(createButton('Last', totalPages, currentPage === totalPages));
+            }
         }
 
-        displayBookings(); // Initial display
+        function loadBookings() {
+            fetch(scriptUrl)
+                .then(response => response.json())
+                .then(data => {
+                    bookings.length = 0;
+                    bookings.push(...data);
+                    bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`));
+                    displayBookings();
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        loadBookings();
     </script>
 </body>
 </html>
