@@ -90,6 +90,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- Add the Relief International logo -->
         <img src="relief-international-logo.png" alt="Relief International Logo" class="logo">
         
         <h1>Relief International Conference Rooms Booking</h1>
@@ -123,13 +124,14 @@
         <div class="booking-list" id="bookingList"></div>
         <div class="pagination" id="paginationControls"></div>
 
+        <!-- Add credits at the bottom -->
         <div class="credits">
             Created by Wael Shalak
         </div>
     </div>
 
     <script>
-        const scriptUrl = 'YOUR_GOOGLE_APPS_SCRIPT_URL';
+        const googleScriptUrl = 'https://script.google.com/macros/s/AKfycbzSBLoU7CgOpQ3M4m0PEEoru9frt-g3j5QPxn2nKqpL4vbKjtPxeRzYoYiU1KyO0bOVFQ/exec';
         const bookings = [];
         const itemsPerPage = 5;
         let currentPage = 1;
@@ -146,6 +148,7 @@
                 return;
             }
 
+            // Check for conflicts
             const conflict = bookings.some(booking =>
                 booking.date === date &&
                 booking.room === room &&
@@ -159,19 +162,28 @@
                 return;
             }
 
-            const booking = { bookerName, date, startTime, endTime, room };
-            fetch(scriptUrl, {
+            // Add booking if no conflict
+            const bookingData = { bookerName, date, startTime, endTime, room };
+            bookings.push(bookingData);
+            bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`)); // Sort by date and time
+
+            // Send data to Google Apps Script
+            fetch(googleScriptUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(booking)
-            }).then(response => response.json())
-              .then(() => {
-                  bookings.push(booking);
-                  bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`));
-                  alert('Room booked successfully!');
-                  displayBookings();
-              })
-              .catch(error => console.error('Error:', error));
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookingData)
+            })
+            .then(response => response.json())
+            .then(() => {
+                alert('Room booked successfully!');
+                displayBookings();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error booking room. Please try again.');
+            });
         }
 
         function displayBookings() {
@@ -181,6 +193,7 @@
             paginationControls.innerHTML = '';
 
             const totalPages = Math.ceil(bookings.length / itemsPerPage);
+
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = Math.min(startIndex + itemsPerPage, bookings.length);
             const currentBookings = bookings.slice(startIndex, endIndex);
@@ -192,6 +205,7 @@
                 bookingList.appendChild(bookingItem);
             });
 
+            // Pagination controls
             if (totalPages > 1) {
                 const createButton = (text, page, disabled = false) => {
                     const button = document.createElement('button');
@@ -221,19 +235,28 @@
             }
         }
 
-        function loadBookings() {
-            fetch(scriptUrl)
+        function fetchBookings() {
+            fetch(googleScriptUrl)
                 .then(response => response.json())
                 .then(data => {
                     bookings.length = 0;
-                    bookings.push(...data);
-                    bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`));
+                    data.forEach(row => {
+                        bookings.push({
+                            bookerName: row[0],
+                            date: row[1],
+                            startTime: row[2],
+                            endTime: row[3],
+                            room: row[4]
+                        });
+                    });
                     displayBookings();
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => {
+                    console.error('Error fetching bookings:', error);
+                });
         }
 
-        loadBookings();
+        fetchBookings(); // Initial fetch to load bookings
     </script>
 </body>
 </html>
