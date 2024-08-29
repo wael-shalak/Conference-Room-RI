@@ -168,7 +168,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ name: bookerName, date, startTime, endTime, room })
+                body: JSON.stringify({
+                    "Booker Name": bookerName,  // Changed to match the Google Sheet header
+                    "Date": date,               // Changed to match the Google Sheet header
+                    "Start Time": startTime,    // Changed to match the Google Sheet header
+                    "End Time": endTime,        // Changed to match the Google Sheet header
+                    "Room": room                // Changed to match the Google Sheet header
+                })
             });
 
             if (response.ok) {
@@ -245,7 +251,7 @@
             }
         }
 
-        fetchBookings(); // Initial load
+        fetchBookings();
     </script>
 </body>
 </html>
