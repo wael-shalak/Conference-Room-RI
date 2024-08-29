@@ -5,87 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relief International Conference Rooms Booking</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        .logo {
-            width: 150px;
-            margin-bottom: 20px;
-        }
-        h1 {
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input[type="date"],
-        input[type="time"],
-        input[type="text"],
-        select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .booking-list {
-            margin-top: 20px;
-        }
-        .booking-item {
-            background-color: #e9ecef;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-        }
-        .credits {
-            margin-top: 30px;
-            font-size: 12px;
-            color: #777;
-            text-align: center;
-        }
-        .pagination {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .pagination button {
-            margin: 0 5px;
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .pagination button.disabled {
-            cursor: not-allowed;
-            color: #aaa;
-        }
+        /* Your existing CSS styles */
     </style>
 </head>
 <body>
@@ -131,7 +51,6 @@
     </div>
 
     <script>
-        // Your Google Apps Script URL
         const googleScriptUrl = 'https://script.google.com/macros/s/AKfycby2-MGmaOn9ZEiDLLsjAfZ_0eSVMwE7dfr2uY4A6e-54G7srcdJU1fBfTGXdsuDwU22VQ/exec';
         const bookings = [];
         const itemsPerPage = 5;
@@ -164,43 +83,51 @@
             }
 
             // Send data to Google Apps Script
-            const response = await fetch(googleScriptUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    "Booker Name": bookerName,  // Changed to match the Google Sheet header
-                    "Date": date,               // Changed to match the Google Sheet header
-                    "Start Time": startTime,    // Changed to match the Google Sheet header
-                    "End Time": endTime,        // Changed to match the Google Sheet header
-                    "Room": room                // Changed to match the Google Sheet header
-                })
-            });
+            try {
+                const response = await fetch(googleScriptUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ bookerName, date, startTime, endTime, room })
+                });
 
-            if (response.ok) {
-                alert('Room booked successfully!');
-                fetchBookings();
-            } else {
-                alert('Failed to book room.');
+                if (response.ok) {
+                    alert('Room booked successfully!');
+                    fetchBookings();
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to book room:', errorText);
+                    alert('Failed to book room.');
+                }
+            } catch (error) {
+                console.error('Error booking room:', error);
+                alert('Error booking room.');
             }
         }
 
         async function fetchBookings() {
-            const response = await fetch(googleScriptUrl);
-            const data = await response.json();
-            bookings.length = 0; // Clear existing bookings
-            data.forEach(row => {
-                bookings.push({
-                    bookerName: row["Booker Name"],  // Changed to match the Google Sheet header
-                    date: row["Date"],               // Changed to match the Google Sheet header
-                    startTime: row["Start Time"],    // Changed to match the Google Sheet header
-                    endTime: row["End Time"],        // Changed to match the Google Sheet header
-                    room: row["Room"]                // Changed to match the Google Sheet header
+            try {
+                const response = await fetch(googleScriptUrl);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                bookings.length = 0; // Clear existing bookings
+                data.forEach(row => {
+                    bookings.push({
+                        bookerName: row[0],
+                        date: row[1],
+                        startTime: row[2],
+                        endTime: row[3],
+                        room: row[4]
+                    });
                 });
-            });
-            bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`)); // Sort by date and time
-            displayBookings();
+                bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`)); // Sort by date and time
+                displayBookings();
+            } catch (error) {
+                console.error('Error fetching bookings:', error);
+            }
         }
 
         function displayBookings() {
