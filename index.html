@@ -131,6 +131,7 @@
     </div>
 
     <script>
+        // Your Google Apps Script URL
         const googleScriptUrl = 'https://script.google.com/macros/s/AKfycby2-MGmaOn9ZEiDLLsjAfZ_0eSVMwE7dfr2uY4A6e-54G7srcdJU1fBfTGXdsuDwU22VQ/exec';
         const bookings = [];
         const itemsPerPage = 5;
@@ -191,11 +192,11 @@
             bookings.length = 0; // Clear existing bookings
             data.forEach(row => {
                 bookings.push({
-                    bookerName: row[0],
-                    date: row[1],
-                    startTime: row[2],
-                    endTime: row[3],
-                    room: row[4]
+                    bookerName: row["Booker Name"],  // Changed to match the Google Sheet header
+                    date: row["Date"],               // Changed to match the Google Sheet header
+                    startTime: row["Start Time"],    // Changed to match the Google Sheet header
+                    endTime: row["End Time"],        // Changed to match the Google Sheet header
+                    room: row["Room"]                // Changed to match the Google Sheet header
                 });
             });
             bookings.sort((a, b) => new Date(`${a.date}T${a.startTime}`) - new Date(`${b.date}T${b.startTime}`)); // Sort by date and time
@@ -251,7 +252,7 @@
             }
         }
 
-        fetchBookings();
+        fetchBookings(); // Initial load
     </script>
 </body>
 </html>
